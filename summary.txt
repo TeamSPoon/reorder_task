@@ -1,0 +1,7 @@
+Top-Level Contents:
+- README.md: Project overview
+- WALKTHROUGH.md: Usage tutorial for CLI and REPL modes
+- Makefile: install, uninstall, run, clean
+- mettaplan: Bash CLI tool that wraps mettaplan_cli.pl
+- mettaplan_cli.pl: Dispatches commands like run/list/trace/suggest
+- summary.txt: Master summary of module structure and responsibilities

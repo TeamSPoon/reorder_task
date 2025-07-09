@@ -1,0 +1,62 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Execution Trace with Timing</title>
+  <style>
+    body { font-family: sans-serif; margin: 2em; }
+    .event { margin-bottom: 0.4em; }
+    .stage { font-weight: bold; margin-top: 1.2em; }
+    .thread { color: darkgreen; }
+    .main { color: darkblue; }
+    .locked { color: darkred; }
+    .fail { color: crimson; font-weight: bold; }
+  </style>
+</head>
+<body>
+<h2>Execution Trace Timeline</h2>
+<pre id="output"></pre>
+
+<script>
+fetch('trace_log.json')
+  .then(res => res.json())
+  .then(data => {
+    const out = document.getElementById('output');
+    const starts = {};
+
+    const sorted = data.sort((a, b) => a.args[1] - b.args[1]);
+
+    sorted.forEach(ev => {
+      const evtype = ev.args[0].functor || ev.args[0].event;
+      const args = ev.args[0].args || [];
+      const time = ev.args[1];
+      let line = '';
+
+      if (evtype === 'stage_start') {
+        line = `\n=== ▶ Stage (${args[0]}) with ${args[1]} goal(s) ===`;
+      } else if (evtype === 'stage_done') {
+        line = `=== ✔ Stage (${args[0]}) complete ===`;
+      } else if (evtype === 'start') {
+        const [who, goal] = args;
+        starts[goal] = time;
+        line = `[${who}] ▶ ${goal} started`;
+      } else if (evtype === 'done') {
+        const [who, goal] = args;
+        const duration = starts[goal] ? (time - starts[goal]).toFixed(2) : '?';
+        line = `[${who}] ✔ ${goal} done (${duration}s)`;
+      } else if (evtype === 'fail') {
+        const [who, goal, reason] = args;
+        line = `[${who}] ❌ ${goal} failed: ${reason}`;
+      }
+
+      const div = document.createElement('div');
+      div.className = 'event';
+      if (line.includes('❌')) div.classList.add('fail');
+      div.textContent = line;
+      out.appendChild(div);
+    });
+  });
+</script>
+</body>
+</html>

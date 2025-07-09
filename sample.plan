@@ -1,0 +1,5 @@
+plan_goals([
+    is_parallel(a),
+    is_sequential(b),
+    c
+]).

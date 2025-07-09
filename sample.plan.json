@@ -1,0 +1,16 @@
+{
+  "goals": [
+    {
+      "policy": "parallel",
+      "goal": "a(X)"
+    },
+    {
+      "policy": "sequential",
+      "goal": "b(X)"
+    },
+    {
+      "policy": "none",
+      "goal": "c"
+    }
+  ]
+}
