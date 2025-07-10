@@ -2,8 +2,6 @@
 
 This system provides a multi-threaded, constraint-aware task execution and scheduling engine built with **SWI-Prolog**, extended by **Python** tools and **MeTTa** integration for flexible pipeline-based AI planning.
 
----
-
 ## ✅ Quick Start
 
 1. **Activate the development environment**:
