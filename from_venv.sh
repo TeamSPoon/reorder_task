@@ -94,11 +94,19 @@ else
 fi
 
 log "🐍 Checking Python virtual environment..."
-if [ ! -d "$VENV_DIR" ]; then
-    log "📦 Creating virtual environment at .venv/"
-    python3 -m venv "$VENV_DIR"
+# Check if we're already in an active virtualenv
+if [ -n "$VIRTUAL_ENV" ]; then
+    log "🧠 Already inside virtualenv at: $VIRTUAL_ENV"
+    VENV_ACTIVE=1
+    VENV_DIR="$VIRTUAL_ENV"
 else
-    log "✅ Virtual environment already exists: .venv/"
+    VENV_ACTIVE=0
+    if [ ! -d "$VENV_DIR" ]; then
+        log "📦 Creating virtual environment at .venv/"
+        python3 -m venv "$VENV_DIR"
+    else
+        log "✅ Virtual environment already exists: .venv/"
+    fi
 fi
 
 VENV_PY="$VENV_DIR/bin/python"
@@ -129,8 +137,24 @@ fi
 
 # Detect if script is being sourced
 is_sourced() {
-    [ -n "$ZSH_EVAL_CONTEXT" ] && case $ZSH_EVAL_CONTEXT in *:file) return 0 ;; esac
-    [ "${BASH_SOURCE[0]}" != "$0" ] 2>/dev/null
+    # Zsh
+    if [ -n "$ZSH_EVAL_CONTEXT" ]; then
+        case $ZSH_EVAL_CONTEXT in *:file) return 0 ;; esac
+    fi
+
+    # Bash
+    if [ -n "$BASH_VERSION" ]; then
+        # Use $0 and $FUNCNAME to detect sourcing
+        [ "${FUNCNAME[0]}" = "source" ] || [ "$0" != "${BASH_SOURCE:-$0}" ]
+        return
+    fi
+
+    # Fallback: if $0 is not a file, assume it's sourced (sh fallback)
+    case "$0" in
+        -sh|sh|dash|bash) return 0 ;;
+    esac
+
+    return 1
 }
 
 # Act based on execution mode
@@ -146,14 +170,15 @@ else
     if command -v bash >/dev/null 2>&1; then
         if [ -n "$CMD_ARGS" ]; then
             log "🚀 Running in virtualenv: $CMD_ARGS"
-            exec "$VENV_DIR/bin/bash" -c "source \"$VENV_DIR/bin/activate\" && exec $CMD_ARGS"
+            exec /usr/bin/env bash -c "source \"$VENV_DIR/bin/activate\" && exec $CMD_ARGS"
         else
             log "🟢 Launching interactive Bash shell with virtualenv activated..."
-            exec "$VENV_DIR/bin/bash" --rcfile "$VENV_DIR/bin/activate"
+            exec /usr/bin/env bash --rcfile "$VENV_DIR/bin/activate"
         fi
     else
         echo "❌ Error: bash not found in PATH." >&2
         exit 1
     fi
 fi
+
 
