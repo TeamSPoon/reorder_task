@@ -5,7 +5,7 @@ This system provides a multi-threaded, constraint-aware task execution and sched
 ## ✅ Quick Start
 
 1. **Activate the development environment**:
-   ```bash
+```bash
    ./from_venv.sh
 ````
 
