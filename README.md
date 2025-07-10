@@ -98,4 +98,5 @@ source ./from_venv.sh
 ---
 
 For detailed developer usage, see [WALKTHROUGH.md](WALKTHROUGH.md).
+See [AGENTS.md](AGENTS.md) for how agents (human or AI) coordinate work and document reasoning.
 

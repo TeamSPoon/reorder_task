@@ -14,6 +14,30 @@ This file provides guidance for AI systems assisting with development or code ge
 - The main virtual environment setup script is [`from_venv.sh`](from_venv.sh).
 - Pipelines may include external MeTTa `.metta` files, processed via helper scripts or Prolog wrappers.
 
+
+### 🛠️ System Setup for Prolog Support
+
+Before attempting to run any code that depends on SWI-Prolog modules or multi-threaded execution:
+
+Run the following manually to ensure all required Prolog packages are installed:
+
+```bash
+sudo apt update -y && sudo apt install -y swi-prolog-full swi-prolog-java swi-prolog-test
+```
+
+This enables support for:
+
+* `engines`, `threads`, `atts`, `nb_rbtrees`, and other concurrency features
+* Full `library(test)` and test runner support
+* Java integration via `swi-prolog-java` if needed
+
+> ⚠️ **Note**: This process can take several minutes and installs a large set of packages.
+> For that reason, we intentionally **left it out of the default local VM or venv setup scripts** (like `from_venv.sh`), to avoid slowing down bootstrapping.
+
+Agents (and users) should run this step **once manually** on any new machine or container where Prolog logic will be used.
+
+Many tasks agents do will not require it though.
+
 ---
 
 ## ✅ DO
