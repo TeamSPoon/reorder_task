@@ -36,10 +36,10 @@ attribute_goals(Var) -->
     [sync_attr:synchronized_with(Var, EngineCmds)].
 
 init_sync_registry :-
-    nb_rb_empty(Tree),
+    rb_empty(Tree),
     nb_linkval('$syn_vars', Tree).
 
-:- thread_initialization(sync_attr:init_sync_registry).
+:- thread_initialization(threaded_attvar:init_sync_registry).
 
 attr_unify_hook(sync(Peers), Value) :-
     ( var(Value) ->
@@ -68,23 +68,6 @@ find_or_create_sync_var(VarID, Cell) :-
     ; Cell = var_cell(_),
       nb_rb_insert(Tree, VarID, Cell)
     ).
-
-
-    copy_term(Term, Copy, Bindings),
-    include(should_sync(Bindings), Bindings, EligibleBindings),
-    maplist(sync_if_eligible(ThisEngine, RemoteEngine), EligibleBindings).
-
-
-sync_if_eligible(ThisEngine, RemoteEngine, Eligible, L=R) :-
-    ( memberchk(L, Eligible) ->
-        gensym(var_, VarID),
-        Cmd1 = sync_attr:send_to_engine(RemoteEngine, bind(VarID)),
-        Cmd2 = sync_attr:send_to_engine(ThisEngine, bind(VarID)),
-        add_peer_sync(L, Cmd1),
-        add_peer_sync(R, Cmd2),
-        register_sync_var(RemoteEngine, VarID, R),
-        register_sync_var(ThisEngine, VarID, L)
-    ; true ).
 
 register_sync_var(_Engine, VarID, Var) :-
     Cell = var_cell(Var),

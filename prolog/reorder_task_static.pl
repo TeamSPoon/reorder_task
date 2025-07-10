@@ -475,8 +475,6 @@ annotate_goals([G|Gs], [(Pol,G2)|Rest]) :-
     annotated_goal:annotated_goal(G, G2, _, Ps),
     ( Ps = [Pol|_] -> true ; Pol = none ),
     annotate_goals(Gs, Rest).
-    strip_annotation(G, G2, Policy),
-    annotate_goals(Gs, Rest).
 
 %! group_parallel_stages_policy(+Annotated:list, +PreBound:list, +Acc:list, -Stages:list, -Leftovers:list)
 group_parallel_stages_policy([], _, Acc, Acc, []).
@@ -559,9 +557,5 @@ inline_all_code([], _, []).
 inline_all_code([Clause|Rest], Except, [NewClause|Out]) :-
     Clause = (Head :- Body),
     deep_inline:deep_inline_body(Body, Except, InlinedBody),
-    NewClause = (Head :- InlinedBody),
-    inline_all_code(Rest, Except, Out).
-    Clause = (Head :- Body),
-    deep_inline_body(Body, Except, InlinedBody),
     NewClause = (Head :- InlinedBody),
     inline_all_code(Rest, Except, Out).
