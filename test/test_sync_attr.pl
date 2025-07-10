@@ -7,6 +7,10 @@
 :- use_module(library(plunit)).
 :- use_module(library(threaded_attvar)).
 
+% uncomment these for debuggings
+%:- pack_install(logicmoo_utils).
+%:- use_module(library(logicmoo_common)).
+
 :- dynamic(shared_result/1).
 :- dynamic(two_way/1).
 
@@ -16,7 +20,7 @@
 %
 % Verifies that a thread sees the binding of a shared variable
 % that occurs after the thread starts.
-test(sync_thread_variable_sharing) :- fail,
+test(sync_thread_variable_sharing) :-
     A = _,
     sync_thread_create([A],
         (
@@ -26,11 +30,11 @@ test(sync_thread_variable_sharing) :- fail,
                 ;   assertz(shared_result(fail))
                 ))
         ),
-        TID,
+        _TID,
         []
     ),
     A = a,
-    thread_join(TID, _),
+    $nop(thread_join(TID, _)),
     assertion(shared_result(ok)),
     retractall(shared_result(_)).
 
