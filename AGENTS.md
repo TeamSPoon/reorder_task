@@ -149,5 +149,14 @@ Thank you, agent. Follow these guidelines to contribute safe, clean, and composa
 - README-ANOTATATION.
 - WALKTHROUGH.md: Usage tutorial for CLI and REPL modes
 - README-ANNOTATOR.md needs updated
-- We should get rid of Makefile 
+- We should get rid of Makefile
+
+### Proposed Follow-up Tasks (May 2025)
+- Fix typos in this section ("Ammendign beollow" and "README-ANOTATATION").
+- Remove stray bracket lines in `prolog/reorder_sync_pool.pl` after the
+  `use_module` directive.
+- Clarify that the Makefile is deprecated in `README.md` so documentation
+  matches project intentions.
+- Extend `test/test_trace_executor_timestamps.pl` to verify timestamp order
+  increases.
 
