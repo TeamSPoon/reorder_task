@@ -1,30 +1,34 @@
 #!/bin/sh
 set -e
 
-# Default to quiet, unless no .venv exists yet
 VERBOSE=0
 CMD_ARGS=""
 
-SCRIPT="$0"
-if [ "$SCRIPT" = "bash" ] || [ "$SCRIPT" = "sh" ]; then
-    SCRIPT="${BASH_SOURCE:-${ZSH_SCRIPT:-$0}}"
+# === Script Path Detection ===
+if [ -n "$BASH_SOURCE" ]; then
+    SCRIPT="$BASH_SOURCE"
+elif [ -n "$ZSH_EVAL_CONTEXT" ]; then
+    SCRIPT="${(%):-%N}"
+else
+    SCRIPT="$0"
 fi
 
 while [ -L "$SCRIPT" ]; do
     SCRIPT="$(readlink "$SCRIPT")"
 done
+
 SCRIPT_DIR="$(cd "$(dirname "$SCRIPT")" && pwd)"
 VENV_DIR="$SCRIPT_DIR/.venv"
 
 [ ! -d "$VENV_DIR" ] && VERBOSE=1
 
-# Print help
+# === Help Menu ===
 show_help() {
     cat <<EOF
 Usage: $0 [OPTIONS] [--] [COMMAND [ARGS...]]
 
-Sets up and enters a Python virtual environment for this project.
-Can be sourced to activate venv in current shell, or run to spawn subshell.
+Initializes and activates a Python virtual environment for this project.
+Detects your shell, installs requirements, and links the Prolog pack.
 
 Options:
   -v, --verbose      Enable verbose output
@@ -33,7 +37,7 @@ Options:
 
 Examples:
   $0
-      Launch interactive (venv) bash shell
+      Launch interactive (venv) shell using your preferred shell
 
   $0 python script.py
       Run Python script inside venv
@@ -53,7 +57,7 @@ EOF
     exit 0
 }
 
-# Parse arguments
+# === Argument Parsing ===
 while [ $# -gt 0 ]; do
     case "$1" in
         -v|--verbose)
@@ -79,6 +83,27 @@ log() {
     [ "$VERBOSE" -eq 1 ] && printf "%s\n" "$*"
 }
 
+# === .env Auto-Loading ===
+if [ -f "$SCRIPT_DIR/.env" ]; then
+    log "📄 Loading .env file..."
+    set -a
+    . "$SCRIPT_DIR/.env"
+    set +a
+fi
+
+# === Shell Detection ===
+PREFERRED_SHELL="${SHELL:-/bin/bash}"
+case "$(basename "$PREFERRED_SHELL")" in
+    bash|zsh|fish)
+        USE_SHELL="$PREFERRED_SHELL"
+        ;;
+    *)
+        log "⚠️  Unknown or unsupported shell: $PREFERRED_SHELL. Falling back to bash."
+        USE_SHELL="/bin/bash"
+        ;;
+esac
+
+# === SWI-Prolog Pack Link ===
 PACK_NAME="$(basename "$SCRIPT_DIR")"
 PACK_DEST="$HOME/.local/share/swi-prolog/pack/$PACK_NAME"
 PY_DIR="$SCRIPT_DIR/python"
@@ -93,8 +118,7 @@ else
     ln -s "$SCRIPT_DIR" "$PACK_DEST"
 fi
 
-log "🐍 Checking Python virtual environment..."
-# Check if we're already in an active virtualenv
+# === Virtualenv Setup ===
 if [ -n "$VIRTUAL_ENV" ]; then
     log "🧠 Already inside virtualenv at: $VIRTUAL_ENV"
     VENV_ACTIVE=1
@@ -112,6 +136,7 @@ fi
 VENV_PY="$VENV_DIR/bin/python"
 VENV_PIP="$VENV_DIR/bin/pip"
 
+# === Install Python Requirements ===
 if [ -d "$PY_DIR" ]; then
     (
         log "🔁 (cd $PY_DIR)"
@@ -135,29 +160,13 @@ else
     log "⚠️  No ./python directory found. Skipping Python install."
 fi
 
-# Detect if script is being sourced
+# === Detect If Sourced ===
 is_sourced() {
-    # Zsh
-    if [ -n "$ZSH_EVAL_CONTEXT" ]; then
-        case $ZSH_EVAL_CONTEXT in *:file) return 0 ;; esac
-    fi
-
-    # Bash
-    if [ -n "$BASH_VERSION" ]; then
-        # Use $0 and $FUNCNAME to detect sourcing
-        [ "${FUNCNAME[0]}" = "source" ] || [ "$0" != "${BASH_SOURCE:-$0}" ]
-        return
-    fi
-
-    # Fallback: if $0 is not a file, assume it's sourced (sh fallback)
-    case "$0" in
-        -sh|sh|dash|bash) return 0 ;;
-    esac
-
-    return 1
+    [ -n "$ZSH_EVAL_CONTEXT" ] && case $ZSH_EVAL_CONTEXT in *:file) return 0 ;; esac
+    [ -n "$BASH_VERSION" ] && [ "${BASH_SOURCE[0]}" != "$0" ] 2>/dev/null
 }
 
-# Act based on execution mode
+# === Final Execution ===
 if is_sourced; then
     log "📎 Script is sourced. Staying in current shell and activating venv."
     # shellcheck disable=SC1090
@@ -167,18 +176,26 @@ if is_sourced; then
         eval "$CMD_ARGS"
     fi
 else
-    if command -v bash >/dev/null 2>&1; then
-        if [ -n "$CMD_ARGS" ]; then
-            log "🚀 Running in virtualenv: $CMD_ARGS"
-            exec /usr/bin/env bash -c "source \"$VENV_DIR/bin/activate\" && exec $CMD_ARGS"
-        else
-            log "🟢 Launching interactive Bash shell with virtualenv activated..."
-            exec /usr/bin/env bash --rcfile "$VENV_DIR/bin/activate"
-        fi
+    if [ -n "$CMD_ARGS" ]; then
+        log "🚀 Running in virtualenv: $CMD_ARGS"
+        case "$(basename "$USE_SHELL")" in
+            fish)
+                exec "$USE_SHELL" -c "source \"$VENV_DIR/bin/activate.fish\"; exec $CMD_ARGS"
+                ;;
+            zsh|bash)
+                exec "$USE_SHELL" -c "source \"$VENV_DIR/bin/activate\" && exec $CMD_ARGS"
+                ;;
+        esac
     else
-        echo "❌ Error: bash not found in PATH." >&2
-        exit 1
+        log "🟢 Launching interactive shell with virtualenv activated..."
+        case "$(basename "$USE_SHELL")" in
+            fish)
+                exec "$USE_SHELL" -i -c "source \"$VENV_DIR/bin/activate.fish\"; exec $USE_SHELL"
+                ;;
+            zsh|bash)
+                exec "$USE_SHELL" --rcfile "$VENV_DIR/bin/activate"
+                ;;
+        esac
     fi
 fi
-
 
