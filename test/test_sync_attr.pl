@@ -21,14 +21,16 @@ test(sync_thread_variable_sharing) :-
     shared_result(ok),
     retractall(shared_result(_)).
 
-test(two_way_sync) :- two_way_sync.
+test(two_way_sync) :- do_two_way_sync.
+
+:- end_tests(sync_attr).
 
 do_two_way_sync:-
     A = _, B = _,
-    sync_thread_create(
+    sync_thread_create([A, B]
         (
             B = b,
-            A == a -> assertz(two_way(ok)) ; assertz(two_way(fail))
+            (A == a -> assertz(two_way(ok)) ; assertz(two_way(fail)))
         ),
         TID,
         []
@@ -40,4 +42,4 @@ do_two_way_sync:-
     two_way(ok),
     retractall(two_way(_)).
 
-:- end_tests(sync_attr).
+
