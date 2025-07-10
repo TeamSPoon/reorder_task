@@ -6,12 +6,11 @@ Supports various modes: sequential, per-task threads, or N-threaded groupings.
 
 
 :- module(reorder_sync_pool,
-    [run_sync_task_pool/3,
-     run_sync_task_pool_optimal/3])
+          [ run_sync_task_pool/3,
+            run_sync_task_pool_optimal/3
+          ]).
 
-:- use_module(reorder_task_static, [group_parallel_stages/4]). [
-    run_sync_task_pool/3
-]).
+:- use_module(reorder_task_static, [group_parallel_stages/4]).
 
 :- use_module(threaded_attvar).
 
@@ -59,10 +58,6 @@ task_list_when_ready(TaskList) :-
 
 
 :- use_module(threaded_attvar, [shared_variables/2, copy_term_with_sync/5]).
-
-%% :-
-    copy_term_with_sync(task_list_when_ready(TaskGroup), Copy, _, _, SharedVars),
-    threaded_attvar:sync_thread_create(Copy, ThreadID, []).
 
 
 
