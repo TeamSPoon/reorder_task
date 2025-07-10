@@ -1,2 +1,2 @@
 #!/bin/bash
-exec swipl -q -s mettaplan_cli.pl -- "$@"
+exec swipl -q -s prolog/mettaplan_cli.pl -- "$@"

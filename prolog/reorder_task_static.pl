@@ -7,7 +7,7 @@ Groups tasks into ordered or parallelizable stages based on readiness.
 
 
 :- module(task_order_static, [
-    reorder_task_groups/4,
+    reorder_task_groups/5,
     print_dependency_graph/2,
     group_parallel_stages/4,
     static_linear_order/4,
@@ -105,16 +105,21 @@ variables_in_goals(Goals, Vars) :-
 
 % === Parallel Grouping ===
 
-group_parallel_stages(Goals, _PreBound, Stages, []) :-
-    stage_builder:build_execution_stages(Goals, StageReps),
-    findall(Gs, member(stage(_, Gs), StageReps), Stages).
+group_parallel_stages(Goals, PreBound, Stages, Leftovers):-
+   group_parallel_stages_v2(Goals, PreBound, Stages, Leftovers), !.
 
-group_parallel_stages_OLD(Goals, PreBound, Stages, Leftovers) :-
+group_parallel_stages_v2(Goals, _PreBound, Stages, []) :-
+    stage_builder:build_execution_stages(Goals, StageReps),
+    findall(Gs, member(stage(_, Gs), StageReps), Stages), !.
+
+group_parallel_stages_v1(Goals, PreBound, Stages, Leftovers) :-
     expand_all_groupables(Goals, Groupables),
     maplist(arg(1), Groupables, ExpandedGoals),
     group_parallel_stages_(ExpandedGoals, PreBound, [], StagesRev, Leftovers),
     reverse(StagesRev, Stages).
-    
+
+
+
 group_parallel_stages_([], _, Acc, Acc, []).
 
 group_parallel_stages_(Remaining, Bound, AccStages, FinalStages, Unplaced) :-
