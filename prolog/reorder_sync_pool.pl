@@ -61,6 +61,13 @@ task_list_when_ready(TaskList) :-
 
 
 
+
+
+
+
+
+
+
 %% run_sync_task_pool_optimal(+N, +TaskList, -Handles)
 %% First statically groups, then distributes tasks minimizing shared vars
 run_sync_task_pool_optimal(N, TaskList, Handles) :-
@@ -72,3 +79,44 @@ run_sync_task_pool_optimal(N, TaskList, Handles) :-
     distribute_tasks(Ordered, N, EmptyPools, ThreadedTasks),
     thread_shared_variable_plan(ThreadedTasks, SharedVars),
     maplist({SharedVars}/[Group,ID]>>spawn_group_with_shared(Group, SharedVars, ID), ThreadedTasks, Handles).
+
+
+
+%% shared_variables(+ListOfTasks, -SharedVars)
+%% Finds variables that appear in 2 or more distinct tasks
+shared_variables(Tasks, Shared) :-
+    maplist(term_variables, Tasks, VarsPerTask),
+    append(VarsPerTask, All),
+    sort(All, Unique),
+    findall(V, (member(V, Unique), appears_in_multiple_tasks(V, VarsPerTask)), Shared).
+
+appears_in_multiple_tasks(_, []) :- fail.
+appears_in_multiple_tasks(V, [L|Ls]) :-
+    ( memberchk(V, L) ->
+        memberchk_rest(V, Ls)
+    ; appears_in_multiple_tasks(V, Ls)
+    ).
+
+memberchk_rest(_, []) :- fail.
+memberchk_rest(V, [L|Ls]) :-
+    ( memberchk(V, L) -> true ; memberchk_rest(V, Ls) ).
+
+%% Enhanced copy_term_with_sync that accepts 'auto' to infer shared vars
+copy_term_with_sync(Term, Copy, ThisEngine, RemoteEngine, auto) :-
+    shared_variables([Term], Shared),
+    copy_term_with_sync(Term, Copy, ThisEngine, RemoteEngine, Shared).
+
+
+%% call_in_thread(+ThreadID, +Goal)
+%% Posts a goal to another thread for execution
+call_in_thread(ThreadID, Goal) :-
+    thread_send_message(ThreadID, run(Goal)).
+
+%% Hook for redirected global set (e.g. b_setval)
+safe_global_set(ThreadID, Key, Value) :-
+    call_in_thread(ThreadID, threaded_attvar:do_setval(Key, Value)).
+
+do_setval(Key, Value) :-
+    nb_setval(Key, Value).
+
+

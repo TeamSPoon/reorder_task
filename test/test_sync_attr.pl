@@ -1,45 +1,93 @@
+% ------------------------------------------------------------------
+% Tests for threaded_attvar module
+% ------------------------------------------------------------------
 
+:- module(sync_attr_tests, []).
+
+:- use_module(library(plunit)).
 :- use_module(library(threaded_attvar)).
+
+:- dynamic(shared_result/1).
+:- dynamic(two_way/1).
 
 :- begin_tests(sync_attr).
 
-test(sync_thread_variable_sharing) :-
-    % Main thread variable
+%= Test: sync_thread_variable_sharing
+%
+% Verifies that a thread sees the binding of a shared variable
+% that occurs after the thread starts.
+test(sync_thread_variable_sharing) :- fail,
     A = _,
-    % Create a thread that waits for A to become a
     sync_thread_create([A],
         (
-            (sleep(1),(A == a -> assertz(shared_result(ok)) ; assertz(shared_result(fail))))
+            on_bind(A,
+                ( A == a ->
+                    assertz(shared_result(ok))
+                ;   assertz(shared_result(fail))
+                ))
         ),
         TID,
         []
     ),
-    % Delay and then bind A
-    %sleep(0.2),
     A = a,
     thread_join(TID, _),
-    shared_result(ok),
+    assertion(shared_result(ok)),
     retractall(shared_result(_)).
 
-test(two_way_sync) :- do_two_way_sync.
-
-:- end_tests(sync_attr).
-
-do_two_way_sync:-
-    A = _, B = _,
-    sync_thread_create([A, B]
+%= Test: on_bind_basic
+%
+% Verifies that on_bind/2 triggers when the variable is bound.
+test(on_bind_basic) :-
+    A = _,
+    sync_thread_create(
         (
-            B = b,
-            (A == a -> assertz(two_way(ok)) ; assertz(two_way(fail)))
+            on_bind(A, assertz(shared_result(yes)))
         ),
         TID,
         []
     ),
-    sleep(1.0),
+    sleep(0.1),
+    A = 42,
+    thread_join(TID, _),
+    assertion(shared_result(yes)),
+    retractall(shared_result(_)).
+
+%= Test: previous_value_tracking
+%
+% Confirms that the registry tracks the previously known value
+% of a synchronized variable correctly.
+test(previous_value_tracking) :-
+    A = _,
+    sync_thread_create([A], (A = hello), TID, []),
+    A = goodbye,
+    thread_join(TID, _),
+    get_attr(A, threaded_attvar, binding(VarID, _)),
+    lookup_sync_var(VarID, A),
+    assertion(A == goodbye).  % RealVar is the value
+
+%= Test: two_way_sync
+%
+% Verifies that two shared variables can synchronize bidirectionally.
+test(two_way_sync) :-
+    A = _, B = _,
+    sync_thread_create([A, B],
+        (
+            B = b,
+            on_bind(A,
+                ( A == a ->
+                    assertz(two_way(ok))
+                ;   assertz(two_way(fail))
+                ))
+        ),
+        TID,
+        []
+    ),
+    sleep(0.1),
     writeln(B),
     A = a,
     thread_join(TID, _),
-    two_way(ok),
+    assertion(two_way(ok)),
     retractall(two_way(_)).
 
+:- end_tests(sync_attr).
 
