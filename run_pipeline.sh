@@ -1,4 +1,3 @@
-
 #!/bin/bash
 echo "🚀 Running MeTTa Task Pipeline..."
-swipl -q -s run_pipeline.pl
+swipl -q -s prolog/run_pipeline.pl
